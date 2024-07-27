@@ -44,7 +44,7 @@
               <option name="method" value="GET" />
               <option name="name" value="get_beneficiaries" />
               <option name="sortWeight" value="2000000" />
-              <option name="url" value="http://localhost:8080/get_beneficiaries" />
+              <option name="url" value="http://127.0.0.1:8080/get_beneficiaries" />
             </requestState>
             <requestState>
               <option name="body">

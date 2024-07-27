@@ -16,7 +16,7 @@ func StartRouting() {
 	router.GET("/check_transfer_status/:transfer_id", checkTransferStatus)
 	router.POST("/get_transaction_history", getTransactionHistory)
 
-	err := router.Run("localhost:8080")
+	err := router.Run("0.0.0.0:8080")
 	if err != nil {
 		return
 	}
