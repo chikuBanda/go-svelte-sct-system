@@ -4,6 +4,8 @@
 	import { goto } from '$app/navigation';
 	import { beneficiaries } from '../stores/beneficiaries'
 
+	const backendUrl = import.meta.env.VITE_BACKEND_URL
+
 	let isModalOpen = false
 	let loading = true
 	let selectedBeneficicaryId = null
@@ -15,7 +17,7 @@
 	});
 
 	onMount(() => {
-		axios.get("http://localhost:8080/get_beneficiaries")
+		axios.get(`${backendUrl}/get_beneficiaries`)
 			.then((response) => {
 				beneficiaries.set(response.data)
 				console.log(beneficiaries_value.length)

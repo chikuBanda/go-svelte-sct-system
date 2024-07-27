@@ -10,3 +10,5 @@ services:
       MYSQL_DATABASE: sct_system_db
     volumes:
       - /c/Users/chiku/dev/data/volumes/sct-system:/var/lib/mysql
+  backend:
+    build:

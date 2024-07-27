@@ -4,6 +4,8 @@
 	import axios from 'axios';
 	import moment from 'moment'
 
+	const backendUrl = import.meta.env.VITE_BACKEND_URL
+
 	let transferLoading = false
 	let isModalOpen = false
 	let transferAmount = 0
@@ -15,7 +17,7 @@
 		let payload = {
 			beneficiary_id: parseInt(beneficiary_id)
 		}
-		axios.post("http://localhost:8080/get_transaction_history", payload)
+		axios.post(`${backendUrl}/get_transaction_history`, payload)
 			.then((response) => {
 				transfers = response.data
 				transfers.reverse()
@@ -36,7 +38,7 @@
 
 		console.log("payload", payload)
 
-		axios.post("http://localhost:8080/initiate_transfer", payload)
+		axios.post(`${backendUrl}/initiate_transfer`, payload)
 			.then((response) => {
 				transferLoading = false
 				isModalOpen = false
@@ -49,11 +51,10 @@
 			})
 	}
 
-	let transferCheckStatusLoading = false
 	let isTransferStatusModalOpen = false
 	let transferStatus = ''
 	const checkStatus = (transferId) => {
-		axios.get("http://localhost:8080/check_transfer_status/" + transferId)
+		axios.get(`${backendUrl}/check_transfer_status/` + transferId)
 			.then((response) => {
 				transferStatus = response.data.status
 				isTransferStatusModalOpen = true

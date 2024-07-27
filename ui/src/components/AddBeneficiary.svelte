@@ -3,6 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { beneficiaries } from '../stores/beneficiaries'
 
+	const backendUrl = import.meta.env.VITE_BACKEND_URL
+
 	export let classes = ''
 	let isModalOpen = false
 	let loading = false
@@ -16,7 +18,7 @@
 			account_number: beneficiaryAccountNumber
 		}
 
-		axios.post("http://localhost:8080/register_beneficiary", payload)
+		axios.post(`${backendUrl}/register_beneficiary`, payload)
 			.then((response) => {
 				loading = false
 				isModalOpen = false
