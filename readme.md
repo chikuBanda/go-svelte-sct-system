@@ -173,3 +173,123 @@ sct-system/
 └── utils/
 └── functions.go
 ```
+
+## MySQL Schema
+
+### Tables and Relationships
+
+#### Beneficiaries
+
+| Column         | Type         | Description                   |
+|----------------|--------------|-------------------------------|
+| id             | INT          | Primary Key, Auto Increment   |
+| name           | VARCHAR(255) | Name of the beneficiary        |
+| account_number | VARCHAR(255) | Account number of the beneficiary |
+
+#### Transfers
+
+| Column         | Type         | Description                         |
+|----------------|--------------|-------------------------------------|
+| id             | INT          | Primary Key, Auto Increment         |
+| beneficiary_id | INT          | Foreign Key referencing beneficiaries(id) |
+| amount         | DECIMAL(10, 2)| Amount of the transfer              |
+| status         | VARCHAR(50)  | Status of the transfer              |
+
+#### TransactionHistories
+
+| Column         | Type         | Description                             |
+|----------------|--------------|-----------------------------------------|
+| id             | INT          | Primary Key, Auto Increment             |
+| transfer_id    | INT          | Foreign Key referencing transfers(id)   |
+| timestamp      | DATETIME     | Timestamp of the transaction            |
+| status         | VARCHAR(50)  | Status of the transaction               |
+
+### Relationships
+
+- **Beneficiaries to Transfers**
+  - `beneficiaries.id` (Primary Key) is referenced by `transfers.beneficiary_id` (Foreign Key).
+
+- **Transfers to TransactionHistories**
+  - `transfers.id` (Primary Key) is referenced by `transaction_histories.transfer_id` (Foreign Key).
+
+## Design Patterns and Decisions
+
+### Repository Pattern
+
+The Repository Pattern is used to separate the data access logic from the business logic. This pattern abstracts the data access layer, allowing the application to interact with the data through a set of well-defined interfaces. By using the Repository Pattern, we achieve the following benefits:
+
+- **Separation of Concerns:** The data access logic is decoupled from the business logic, making the codebase more maintainable and easier to understand.
+- **Testability:** It becomes easier to mock or stub the data access layer in unit tests, improving the testability of the business logic.
+- **Flexibility:** Changes to the data source or data access logic do not affect the business logic. The repository can be modified or replaced without impacting other parts of the application.
+
+In the application, repositories are defined for each entity:
+
+- **`repositories/beneficiary.go`**: Manages operations related to the `Beneficiary` model.
+- **`repositories/transactionHistory.go`**: Handles operations for the `TransactionHistory` model.
+- **`repositories/transfer.go`**: Manages operations for the `Transfer` model.
+
+### Separation of Concerns
+
+The application architecture is designed with a clear separation of concerns to keep the code organized and structured. This separation improves maintainability, readability, and scalability. The key areas of separation are:
+
+- **Database Initialization vs. Model Creation:**
+  - **Database Initialization:** Managed in **`database/connection.go`**, responsible for setting up and managing the database connection.
+  - **Model Creation:** Models are defined in **`models/models.go`**, separated from the database initialization logic. This ensures changes to the database schema or connection logic do not impact the model definitions.
+
+- **Routes vs. Route Handlers:**
+  - **Routes:** Configured in **`router/router.go`**, which sets up HTTP routes and initializes the router. It routes incoming requests to the appropriate handlers.
+  - **Route Handlers:** Implemented in **`router/handlers.go`**, defining HTTP handlers that process requests and return responses. Handlers interact with repositories to perform business logic.
+
+- **Route Handlers vs. Repositories:**
+  - **Route Handlers:** Contain logic to handle HTTP requests, validate input, and format responses. They delegate data access operations to the repositories.
+  - **Repositories:** Implemented in the **`repositories/`** folder, encapsulating the logic for interacting with the database. This layer provides a clean interface for route handlers to access and modify data.
+
+### Benefits of Separation of Concerns
+
+- **Organized Codebase:** Each component has a specific responsibility, making the codebase easier to navigate and understand.
+- **Enhanced Maintainability:** Changes to one part of the system (e.g., database schema or route logic) can be made with minimal impact on other parts.
+- **Improved Scalability:** The modular structure allows for easy expansion or modification of individual components without disrupting the entire system.
+
+### Atomic Transactions
+
+To ensure data consistency and integrity, especially when dealing with multiple related operations, atomic transactions are used. Atomic transactions guarantee that a series of database operations are executed as a single unit of work. If any part of the transaction fails, the entire transaction is rolled back, leaving the database in a consistent state.
+
+In the context of creating a transfer, we use atomic transactions to:
+
+- **Ensure Consistency:** When creating a transfer, both the `Transfer` record and the associated `TransactionHistory` record must be created successfully. If an error occurs while creating either record, the entire transaction is rolled back.
+- **Maintain Integrity:** This approach ensures that the database is not left in an inconsistent state if any operation within the transaction fails.
+
+The atomic transaction is implemented in the `CreateTransfer` function as follows:
+
+```go
+func CreateTransfer(newTransfer *models.Transfer) error {
+	// Use an atomic transaction to create both the transfer and transaction history
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
+		var beneficiary models.Beneficiary
+		tx.Model(&models.Beneficiary{}).
+			Where("id = ?", newTransfer.BeneficiaryId).
+			First(&beneficiary)
+
+		err := tx.Model(&beneficiary).Association("Transfers").Append(newTransfer)
+		if err != nil {
+			return err
+		}
+
+		var newTransactionHistory models.TransactionHistory
+		newTransactionHistory.TransferID = newTransfer.ID
+		newTransactionHistory.Timestamp = time.Now()
+		newTransactionHistory.Status = "SENT"
+
+		err = tx.Model(&models.TransactionHistory{}).Create(&newTransactionHistory).Error
+		if err != nil {
+			return err
+		}
+
+		newTransfer.TransactionHistory = newTransactionHistory
+
+		// return nil will commit the whole transaction
+		return nil
+	})
+
+	return err
+}
