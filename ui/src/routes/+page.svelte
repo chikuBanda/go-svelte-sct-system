@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { beneficiaries } from '../stores/beneficiaries'
+	import AddBeneficiary from '../components/AddBeneficiary.svelte';
 
 	const backendUrl = import.meta.env.VITE_BACKEND_URL
 
@@ -95,7 +96,7 @@
 		{:else }
 			<h3 class="text-center">You have no beneficiaries </h3>
 			<div class="flex justify-center align-middle">
-				<button class="btn btn-primary">Add a beneficiary</button>
+				<AddBeneficiary classes="btn btn-primary">Add a beneficiary</AddBeneficiary>
 			</div>
 		{/if}
 
